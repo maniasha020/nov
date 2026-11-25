@@ -1,26 +1,3 @@
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyAJ67EfNDNQcIUE13J7lPrQUc3O-wOLGPs",
-    authDomain: "test-nov-6347a.firebaseapp.com",
-    projectId: "test-nov-6347a",
-    storageBucket: "test-nov-6347a.firebasestorage.app",
-    messagingSenderId: "210320564676",
-    appId: "1:210320564676:web:9eca0846cbdba83054c491",
-    measurementId: "G-YQK0CPVL2L"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -54,17 +31,26 @@
 </div>
 
 <script type="module">
-    // Подключаем Firebase SDK v10
+    // Объединяем все импорты под единой версией 10.12.0
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, push, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 
-    // Настройки с вашим databaseURL
+    // Полная объединенная конфигурация вашего веб-приложения
     const firebaseConfig = {
-        databaseURL: "https://test-nov-6347a-default-rtdb.firebaseio.com"
-        // Скопируйте сюда apiKey и authDomain из настроек проекта в консоли
+        apiKey: "AIzaSyAJ67EfNDNQcIUE13J7lPrQUc3O-wOLGPs",
+        authDomain: "test-nov-6347a.firebaseapp.com",
+        projectId: "test-nov-6347a",
+        storageBucket: "test-nov-6347a.firebasestorage.app",
+        messagingSenderId: "210320564676",
+        appId: "1:210320564676:web:9eca0846cbdba83054c491",
+        measurementId: "G-YQK0CPVL2L",
+        databaseURL: "https://test-nov-6347a-default-rtdb.firebaseio.com" // Ссылка на базу данных
     };
 
+    // Инициализируем один раз
     const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
     const db = getDatabase(app);
     const subjectsRef = ref(db, "subjects");
 
@@ -74,9 +60,9 @@
     const formTitle = document.getElementById("formTitle");
     const list = document.getElementById("subjectsList");
 
-    let editingKey = null; // ID предмета в режиме редактирования
+    let editingKey = null;
 
-    // Сохранение (Запись или Изменение)
+    // Сохранение и изменение
     saveBtn.addEventListener("click", () => {
         const name = nameInput.value.trim();
         const date = dateInput.value;
@@ -84,11 +70,9 @@
         if (!name || !date) return alert("Заполните все поля!");
 
         if (editingKey) {
-            // Обновляем запись по её ID
             update(ref(db, `subjects/${editingKey}`), { name, date })
                 .then(() => resetForm());
         } else {
-            // Добавляем новую запись
             push(subjectsRef, { name, date })
                 .then(() => resetForm());
         }
@@ -102,7 +86,7 @@
         formTitle.textContent = "Добавить предмет";
     }
 
-    // Чтение и вывод в реальном времени (с кнопками редактирования и удаления)
+    // Чтение, изменение и удаление
     onValue(subjectsRef, (snapshot) => {
         list.innerHTML = "";
         const data = snapshot.val();
@@ -115,7 +99,6 @@
                 const btnGroup = document.createElement("div");
                 btnGroup.className = "btn-group";
 
-                // Кнопка изменения (Редактировать)
                 const editBtn = document.createElement("button");
                 editBtn.textContent = "✎";
                 editBtn.className = "edit-btn";
@@ -127,13 +110,12 @@
                     formTitle.textContent = "Редактирование";
                 };
 
-                // Кнопка удаления (Удалить)
                 const deleteBtn = document.createElement("button");
                 deleteBtn.textContent = "🗑";
                 deleteBtn.className = "delete-btn";
                 deleteBtn.onclick = () => {
                     if (confirm("Вы уверены, что хотите удалить этот предмет?")) {
-                        remove(ref(db, `subjects/${key}`)); // Удаление записи [rtdb]
+                        remove(ref(db, `subjects/${key}`));
                     }
                 };
 
