@@ -1,0 +1,152 @@
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAJ67EfNDNQcIUE13J7lPrQUc3O-wOLGPs",
+    authDomain: "test-nov-6347a.firebaseapp.com",
+    projectId: "test-nov-6347a",
+    storageBucket: "test-nov-6347a.firebasestorage.app",
+    messagingSenderId: "210320564676",
+    appId: "1:210320564676:web:9eca0846cbdba83054c491",
+    measurementId: "G-YQK0CPVL2L"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Школьные Предметы (Firebase)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; }
+        .container { max-width: 450px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 10px; margin: 6px 0; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; }
+        button { background-color: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .btn-group { display: flex; gap: 5px; }
+        .btn-group button { width: auto; padding: 5px 10px; font-size: 14px; margin: 0; }
+        .edit-btn { background-color: #ffc107; color: black; }
+        .delete-btn { background-color: #dc3545; color: white; }
+        ul { list-style-type: none; padding: 0; margin-top: 20px; }
+        li { padding: 10px; background: #f9f9f9; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #007bff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 id="formTitle">Добавить предмет</h2>
+    <input type="text" id="subjectName" placeholder="Название предмета">
+    <input type="date" id="subjectDate">
+    <button id="saveBtn">Сохранить</button>
+
+    <h2>Список предметов:</h2>
+    <ul id="subjectsList"></ul>
+</div>
+
+<script type="module">
+    // Подключаем Firebase SDK v10
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, push, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    // Настройки с вашим databaseURL
+    const firebaseConfig = {
+        databaseURL: "https://test-nov-6347a-default-rtdb.firebaseio.com"
+        // Скопируйте сюда apiKey и authDomain из настроек проекта в консоли
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const subjectsRef = ref(db, "subjects");
+
+    const nameInput = document.getElementById("subjectName");
+    const dateInput = document.getElementById("subjectDate");
+    const saveBtn = document.getElementById("saveBtn");
+    const formTitle = document.getElementById("formTitle");
+    const list = document.getElementById("subjectsList");
+
+    let editingKey = null; // ID предмета в режиме редактирования
+
+    // Сохранение (Запись или Изменение)
+    saveBtn.addEventListener("click", () => {
+        const name = nameInput.value.trim();
+        const date = dateInput.value;
+
+        if (!name || !date) return alert("Заполните все поля!");
+
+        if (editingKey) {
+            // Обновляем запись по её ID
+            update(ref(db, `subjects/${editingKey}`), { name, date })
+                .then(() => resetForm());
+        } else {
+            // Добавляем новую запись
+            push(subjectsRef, { name, date })
+                .then(() => resetForm());
+        }
+    });
+
+    function resetForm() {
+        nameInput.value = "";
+        dateInput.value = "";
+        editingKey = null;
+        saveBtn.textContent = "Сохранить";
+        formTitle.textContent = "Добавить предмет";
+    }
+
+    // Чтение и вывод в реальном времени (с кнопками редактирования и удаления)
+    onValue(subjectsRef, (snapshot) => {
+        list.innerHTML = "";
+        const data = snapshot.val();
+
+        if (data) {
+            Object.entries(data).forEach(([key, item]) => {
+                const li = document.createElement("li");
+                li.innerHTML = `<span><strong>${item.name}</strong> (${item.date})</span>`;
+
+                const btnGroup = document.createElement("div");
+                btnGroup.className = "btn-group";
+
+                // Кнопка изменения (Редактировать)
+                const editBtn = document.createElement("button");
+                editBtn.textContent = "✎";
+                editBtn.className = "edit-btn";
+                editBtn.onclick = () => {
+                    editingKey = key;
+                    nameInput.value = item.name;
+                    dateInput.value = item.date;
+                    saveBtn.textContent = "Изменить";
+                    formTitle.textContent = "Редактирование";
+                };
+
+                // Кнопка удаления (Удалить)
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "🗑";
+                deleteBtn.className = "delete-btn";
+                deleteBtn.onclick = () => {
+                    if (confirm("Вы уверены, что хотите удалить этот предмет?")) {
+                        remove(ref(db, `subjects/${key}`)); // Удаление записи [rtdb]
+                    }
+                };
+
+                btnGroup.appendChild(editBtn);
+                btnGroup.appendChild(deleteBtn);
+                li.appendChild(btnGroup);
+                list.appendChild(li);
+            });
+        } else {
+            list.innerHTML = "<li>Список пуст</li>";
+        }
+    });
+</script>
+
+</body>
+</html>
