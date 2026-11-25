@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Школьные Предметы (с Авторизацией)</title>
+    <title>Авторизация Google и GitHub</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; }
         .container { max-width: 450px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         input, button { width: 100%; padding: 10px; margin: 6px 0; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; }
         button { color: white; border: none; font-weight: bold; cursor: pointer; }
         #saveBtn { background-color: #28a745; }
-        #saveBtn:hover { background-color: #218838; }
-        #loginBtn { background-color: #24292e; font-size: 16px; } /* Стиль кнопки GitHub */
+        #loginGithubBtn { background-color: #24292e; } /* GitHub */
+        #loginGoogleBtn { background-color: #4285F4; }  /* Google */
         #logoutBtn { background-color: #dc3545; width: auto; padding: 5px 10px; margin: 0; }
         .btn-group { display: flex; gap: 5px; }
         .btn-group button { width: auto; padding: 5px 10px; font-size: 14px; margin: 0; }
@@ -24,14 +24,15 @@
 <body>
 
 <div class="container">
-    <!-- БЛОК АВТОРИЗАЦИИ (виден по умолчанию) -->
+    <!-- БЛОК ВХОДА -->
     <div id="authSection" style="display: block; text-align: center;">
         <h2>Вход в систему</h2>
-        <p>Для просмотра предметов, пожалуйста, войдите:</p>
-        <button id="loginBtn">Войти через GitHub</button>
+        <p>Выберите способ входа:</p>
+        <button id="loginGoogleBtn">Войти через Google</button>
+        <button id="loginGithubBtn">Войти через GitHub</button>
     </div>
 
-    <!-- БЛОК ПРИЛОЖЕНИЯ (скрыт по умолчанию, показывается только авторизованным) -->
+    <!-- БЛОК ПРИЛОЖЕНИЯ -->
     <div id="appSection" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h2 id="formTitle" style="margin: 0;">Добавить предмет</h2>
@@ -49,7 +50,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, push, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-    import { getAuth, signInWithPopup, GithubAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAJ67EfNDNQcIUE13J7lPrQUc3O-wOLGPs",
@@ -64,12 +65,16 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth(app);
-    const provider = new GithubAuthProvider();
+    
+    // Провайдеры авторизации
+    const githubProvider = new GithubAuthProvider();
+    const googleProvider = new GoogleAuthProvider();
     const subjectsRef = ref(db, "subjects");
 
     const authSection = document.getElementById("authSection");
     const appSection = document.getElementById("appSection");
-    const loginBtn = document.getElementById("loginBtn");
+    const loginGoogleBtn = document.getElementById("loginGoogleBtn");
+    const loginGithubBtn = document.getElementById("loginGithubBtn");
     const logoutBtn = document.getElementById("logoutBtn");
     const nameInput = document.getElementById("subjectName");
     const dateInput = document.getElementById("subjectDate");
@@ -78,33 +83,35 @@
     const list = document.getElementById("subjectsList");
 
     let editingKey = null;
-    let unsubscribeDB = null; // Функция для отписки от базы данных
+    let unsubscribeDB = null;
 
-    // Обработка авторизации
-    loginBtn.addEventListener("click", () => {
-        signInWithPopup(auth, provider).catch(err => alert("Ошибка входа: " + err.message));
+    // Вход через Google
+    loginGoogleBtn.addEventListener("click", () => {
+        signInWithPopup(auth, googleProvider).catch(err => alert("Ошибка Google: " + err.message));
+    });
+
+    // Вход через GitHub
+    loginGithubBtn.addEventListener("click", () => {
+        signInWithPopup(auth, githubProvider).catch(err => alert("Ошибка GitHub: " + err.message));
     });
 
     logoutBtn.addEventListener("click", () => {
         signOut(auth).catch(err => console.error(err));
     });
 
-    // Отслеживание состояния входа пользователя
+    // Состояние авторизации
     onAuthStateChanged(auth, (user) => {
         if (user) {
             authSection.style.display = "none";
             appSection.style.display = "block";
-            // Запускаем чтение БД только после входа!
             startListeningDB();
         } else {
             authSection.style.display = "block";
             appSection.style.display = "none";
-            // Останавливаем прослушивание БД при выходе
             stopListeningDB();
         }
     });
 
-    // Функция чтения данных
     function startListeningDB() {
         unsubscribeDB = onValue(subjectsRef, (snapshot) => {
             list.innerHTML = "";
@@ -156,7 +163,6 @@
         list.innerHTML = "";
     }
 
-    // Сохранение изменений или добавление
     saveBtn.addEventListener("click", () => {
         const name = nameInput.value.trim();
         const date = dateInput.value;
